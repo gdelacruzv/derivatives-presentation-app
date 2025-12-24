@@ -57,8 +57,9 @@ DATA_DEFAULT = {
     "Client Position PAYs / RECs": "PAYs",
     "Client Position PAYs/RECs": "PAYs",
     "Client Leg fixed/float": "fixed",
-    "Bank Position PAYs / RECs": "RECs",
-    "Bank Position PAYs/RECs": "RECs",
+    "Bank Leg fixed/float": "float",
+    "Bank Position fixed / float": "fixed",
+    
 }
 
 PLACEHOLDER_RE = re.compile(r"\{\{([^{}]+)\}\}")
@@ -400,9 +401,8 @@ def main():
             float_payer = st.text_input("Float Rate Payer", DATA_DEFAULT["Float Rate Payer"])
             swap_rate   = st.text_input("Swap Rate", DATA_DEFAULT["Swap Rate"])
             index_rate  = st.text_input("Index Rate", DATA_DEFAULT["Index Rate"])
-            client_pos  = st.text_input("Client Position PAYs/RECs", DATA_DEFAULT["Client Position PAYs/RECs"])
             client_leg  = st.text_input("Client Leg fixed/float", DATA_DEFAULT["Client Leg fixed/float"])
-            bank_pos    = st.text_input("Bank Position PAYs/RECs", DATA_DEFAULT["Bank Position PAYs/RECs"])
+            Bank_leg    = st.text_input("Bank Leg fixed/float", DATA_DEFAULT["Bank Leg fixed/float"])
 
         submitted = st.form_submit_button("Generate Presentation")
 
