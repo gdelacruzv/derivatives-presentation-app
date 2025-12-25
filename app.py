@@ -6,7 +6,6 @@ Interest Rate Derivatives Presentation Generator – Streamlit App
 import re
 import datetime as dt
 from pathlib import Path
-import os
 
 import requests
 import pandas as pd
@@ -17,8 +16,12 @@ from pptx import Presentation
 # =========================
 # CONFIG (defaults)
 # =========================
-TEMPLATE_PPTX_DEFAULT = r"C:\Users\gilbe\Documents\PPTX Filler\Derivatives_Presentation_Template.pptx"
-OUTPUT_DIR            = Path(r"C:\Users\gilbe\Documents\PPTX Filler")
+
+# Template is assumed to be in the same repo/folder as this app
+TEMPLATE_PPTX_DEFAULT = Path("Derivatives_Presentation_Template.pptx")
+
+# Output directory (relative so it works on Streamlit Cloud and locally)
+OUTPUT_DIR = Path("generated_pptx")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 SOFR_GRAPH_PLACEHOLDER_KEY  = "SOFR_GRAPH"   # {{SOFR_GRAPH}} on slide 2
@@ -30,8 +33,6 @@ GRAPH_PLACEHOLDERS = {SOFR_GRAPH_PLACEHOLDER_KEY, DGS10_GRAPH_PLACEHOLDER_KEY}
 SOFR_CHART_PATH  = OUTPUT_DIR / "sofr_chart.png"
 DGS10_CHART_PATH = OUTPUT_DIR / "dgs10_chart.png"
 
-# FRED defaults
-FRED_API_KEY_DEFAULT   = os.getenv("FRED_API_KEY", "").strip()
 FRED_LOOKBACK_DAYS_DEF = 365 * 2
 FRED_SOFR_SERIES       = "SOFR"
 FRED_DGS10_SERIES      = "DGS10"
@@ -101,7 +102,7 @@ def compute_derived_fields(data: dict) -> None:
 
 def fred_get_series_observations(series_id: str, api_key: str, observation_start: str) -> pd.Series:
     if not api_key:
-        raise ValueError("Missing FRED_API_KEY.")
+        raise ValueError("Missing FRED_API_KEY (Streamlit secret).")
     url = "https://api.stlouisfed.org/fred/series/observations"
     params = {
         "series_id": series_id,
@@ -278,6 +279,14 @@ def insert_image_by_placeholder_on_slide(
     return inserted
 
 
+def get_fred_api_key() -> str:
+    """Read FRED API key from Streamlit secrets."""
+    try:
+        return st.secrets["FRED_API_KEY"]
+    except Exception:
+        return ""
+
+
 def generate_pptx(
     data: dict,
     template_path: Path,
@@ -356,25 +365,7 @@ def generate_pptx(
 def main():
     st.title("Interest Rate Derivatives Presentation Generator")
 
-    st.sidebar.header("Template & FRED Settings")
-    template_path_str = st.sidebar.text_input(
-        "Template PPTX path",
-        value=TEMPLATE_PPTX_DEFAULT,
-    )
-
-    uploaded_template = st.sidebar.file_uploader(
-        "Or upload a PPTX template",
-        type=["pptx"],
-        help="If provided, this overrides the path above."
-    )
-
-    fred_api_key = st.sidebar.text_input(
-        "FRED API Key",
-        value=FRED_API_KEY_DEFAULT,
-        type="password",
-        help="Used to pull SOFR/DGS10 charts."
-    )
-
+    st.sidebar.header("Chart Settings")
     fred_lookback_days = st.sidebar.number_input(
         "SOFR lookback days",
         min_value=30,
@@ -412,8 +403,9 @@ def main():
         submitted = st.form_submit_button("Generate Presentation")
 
     if submitted:
+        fred_api_key = get_fred_api_key()
         if not fred_api_key:
-            st.error("Please provide a FRED API key.")
+            st.error("FRED_API_KEY is not set in Streamlit secrets.")
             return
 
         # Build data dict from inputs
@@ -439,13 +431,7 @@ def main():
             "index rate": index_rate,
         })
 
-        # Decide which template to use
-        if uploaded_template is not None:
-            template_path = OUTPUT_DIR / "uploaded_template.pptx"
-            with open(template_path, "wb") as f:
-                f.write(uploaded_template.getbuffer())
-        else:
-            template_path = Path(template_path_str)
+        template_path = TEMPLATE_PPTX_DEFAULT
 
         try:
             out_path = generate_pptx(
