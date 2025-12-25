@@ -360,11 +360,12 @@ def generate_pptx(
 
 
 # =========================
-# STREAMLIT APP
+# STREAMLIT APP (template locked to repo file)
 # =========================
 def main():
     st.title("Interest Rate Derivatives Presentation Generator")
 
+    # --- Sidebar: only chart settings ---
     st.sidebar.header("Chart Settings")
     fred_lookback_days = st.sidebar.number_input(
         "SOFR lookback days",
@@ -408,7 +409,7 @@ def main():
             st.error("FRED_API_KEY is not set in Streamlit secrets.")
             return
 
-        # Build data dict from inputs
+        # Build data dict from form inputs
         data = DATA_DEFAULT.copy()
         data.update({
             "Presentation Date": pres_date,
@@ -431,6 +432,7 @@ def main():
             "index rate": index_rate,
         })
 
+        # 🔒 always use local repo template — no uploads, no input UI
         template_path = TEMPLATE_PPTX_DEFAULT
 
         try:
